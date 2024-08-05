@@ -1,6 +1,0 @@
-@ShiraSubathonTracker_HostAddress = http://localhost:5242
-
-GET {{ShiraSubathonTracker_HostAddress}}/weatherforecast/
-Accept: application/json
-
-###

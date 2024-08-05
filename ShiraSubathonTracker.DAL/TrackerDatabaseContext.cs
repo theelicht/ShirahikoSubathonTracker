@@ -1,7 +1,9 @@
 ﻿using Microsoft.EntityFrameworkCore;
+using ShiraSubathonTracker.DAL.Entities.Minecraft;
 
 namespace ShiraSubathonTracker.DAL;
 
-public class TrackerDatabaseContext : DbContext
+public class TrackerDatabaseContext(DbContextOptions<TrackerDatabaseContext> dbContextOptions) : DbContext(dbContextOptions)
 {
+    public DbSet<MinecraftServer> MinecraftServers { get; set; }
 }
