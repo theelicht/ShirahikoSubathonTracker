@@ -16,4 +16,6 @@ public class MinecraftServer
     
     public required DateTimeOffset LastOnline { get; set; }
     public bool CurrentServer { get; set; }
+
+    public List<MinecraftPlayer> Players { get; set; } = [];
 }
