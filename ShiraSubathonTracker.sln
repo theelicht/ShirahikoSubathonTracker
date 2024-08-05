@@ -1,0 +1,22 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ShiraSubathonTracker", "ShiraSubathonTracker\ShiraSubathonTracker.csproj", "{92920D11-5D25-4AC7-BA44-35EC4E48E04F}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ShiraSubathonTracker.DAL", "ShiraSubathonTracker.DAL\ShiraSubathonTracker.DAL.csproj", "{55BF0B41-CAEF-451C-A172-8730216C0B38}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{92920D11-5D25-4AC7-BA44-35EC4E48E04F}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{92920D11-5D25-4AC7-BA44-35EC4E48E04F}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{92920D11-5D25-4AC7-BA44-35EC4E48E04F}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{92920D11-5D25-4AC7-BA44-35EC4E48E04F}.Release|Any CPU.Build.0 = Release|Any CPU
+		{55BF0B41-CAEF-451C-A172-8730216C0B38}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{55BF0B41-CAEF-451C-A172-8730216C0B38}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{55BF0B41-CAEF-451C-A172-8730216C0B38}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{55BF0B41-CAEF-451C-A172-8730216C0B38}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+EndGlobal
