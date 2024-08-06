@@ -13,9 +13,18 @@ public class MinecraftServer
     
     [MaxLength(120)]
     public string? MessageOfTheDay { get; set; }
+
+    public required ServerStatus ServerStatus { get; set; } = ServerStatus.Offline;
     
     public required DateTimeOffset LastOnline { get; set; }
     public bool CurrentServer { get; set; }
 
     public List<MinecraftPlayer> Players { get; set; } = [];
+}
+
+public enum ServerStatus
+{
+    Online = 0,
+    Offline = 1,
+    ConnectionTimedOut = 2
 }

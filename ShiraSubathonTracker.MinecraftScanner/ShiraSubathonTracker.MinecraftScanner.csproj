@@ -26,4 +26,10 @@
     <ItemGroup>
         <Using Include="System.Threading.ExecutionContext" Alias="ExecutionContext"/>
     </ItemGroup>
+    <ItemGroup>
+      <ProjectReference Include="..\ShiraSubathonTracker.DAL\ShiraSubathonTracker.DAL.csproj" />
+    </ItemGroup>
+    <ItemGroup>
+      <ProjectReference Include="..\ShiraSubathonTracker.DAL\ShiraSubathonTracker.DAL.csproj" />
+    </ItemGroup>
 </Project>
