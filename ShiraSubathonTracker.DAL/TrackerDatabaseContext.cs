@@ -7,4 +7,5 @@ public class TrackerDatabaseContext(DbContextOptions<TrackerDatabaseContext> dbC
 {
     public DbSet<MinecraftServer> MinecraftServers { get; set; }
     public DbSet<MinecraftPlayer> MinecraftPlayers { get; set; }
+    public DbSet<MinecraftVersion> MinecraftVersions { get; set; }
 }

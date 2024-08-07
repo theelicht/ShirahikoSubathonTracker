@@ -19,7 +19,7 @@ public class MinecraftPlayer
     [MaxLength(50)]
     public required string Uuid { get; set; }
     
-    public int MinutesOnline { get; set; }
+    public long SecondsOnline { get; set; }
     
-    public DateTimeOffset LastOnline { get; set; }
+    public DateTimeOffset LastSeenOnline { get; set; }
 }

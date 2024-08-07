@@ -1,4 +1,5 @@
 ﻿using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
 
 namespace ShiraSubathonTracker.DAL.Entities.Minecraft;
 
@@ -16,10 +17,16 @@ public class MinecraftServer
 
     public required ServerStatus ServerStatus { get; set; } = ServerStatus.Offline;
     
-    public required DateTimeOffset LastOnline { get; set; }
+    public required DateTimeOffset LastSeenOnline { get; set; }
     public bool CurrentServer { get; set; }
 
     public List<MinecraftPlayer> Players { get; set; } = [];
+    
+    [MaxLength(20)]
+    public required string Version { get; set; }
+    
+    [ForeignKey(nameof(Version))]
+    public MinecraftVersion MinecraftVersion { get; set; }
 }
 
 public enum ServerStatus

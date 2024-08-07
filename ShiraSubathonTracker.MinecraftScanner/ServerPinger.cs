@@ -15,10 +15,14 @@ public class ServerPinger(
     StreamBuffer streamBuffer,
     TrackerDatabaseContext trackerDatabaseContext)
 {
+    private const int TimeToAdd = 15;
+    
     [Function("ServerPing")]
     public async Task RunAsync([TimerTrigger("*/15 * * * * *")] TimerInfo myTimer, FunctionContext context)
     {
         var servers = await trackerDatabaseContext.MinecraftServers
+            .Include(x => x.MinecraftVersion)
+            .Include(x => x.Players)
             .Where(x => x.CurrentServer)
             .ToListAsync(context.CancellationToken);
 
@@ -40,7 +44,7 @@ public class ServerPinger(
         await EstablishConnection(server, task, tpcClient, cancellationToken);
 
         await using var stream = tpcClient.GetStream();
-        await SetupHandshake(stream, host, port);
+        await SetupHandshake(stream, host, port, server.MinecraftVersion.ServerProtocol);
 
         SendStatusRequest(stream);
 
@@ -99,11 +103,11 @@ public class ServerPinger(
     /// <param name="stream">Stream used to set up handshake.</param>
     /// <param name="serverHost">The server host to connect to.</param>
     /// <param name="serverPort">The server port used for the connection.</param>
-    private Task SetupHandshake(NetworkStream stream, string serverHost, int serverPort)
+    /// <param name="serverProtocol">The server protocol used for the connection.</param>
+    private Task SetupHandshake(NetworkStream stream, string serverHost, int serverPort, int serverProtocol)
     {
         logger.LogInformation("Attempting handshake.");
-        // TODO: Replace with dynamic value set in database, current value = v1.21
-        streamBuffer.WriteInt(767);
+        streamBuffer.WriteInt(serverProtocol);
         streamBuffer.WriteString(serverHost);
         streamBuffer.WriteShort((short)serverPort);
         streamBuffer.WriteInt(1);
@@ -152,6 +156,28 @@ public class ServerPinger(
         CancellationToken cancellationToken)
     {
         server.ServerStatus = ServerStatus.Online;
-        server.LastOnline = DateTimeOffset.Now;
+        server.LastSeenOnline = DateTimeOffset.Now;
+
+        foreach (var playerInformation in serverPingResponse.Players.Sample)
+        {
+            var player = server.Players.SingleOrDefault(x => x.Uuid == playerInformation.Id);
+
+            if (player == null)
+            {
+                player = new MinecraftPlayer
+                {
+                    IpAddress = server.IpAddress,
+                    PlayerName = playerInformation.Name,
+                    Uuid = playerInformation.Id
+                };
+
+                trackerDatabaseContext.MinecraftPlayers.Add(player);
+            }
+
+            player.SecondsOnline += TimeToAdd;
+            player.LastSeenOnline = DateTimeOffset.Now;
+        }
+
+        await trackerDatabaseContext.SaveChangesAsync(cancellationToken);
     }
 }
