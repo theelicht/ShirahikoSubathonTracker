@@ -6,7 +6,7 @@ namespace ShiraSubathonTracker.DAL.Entities.Minecraft;
 public class MinecraftServer
 {
     [Key]
-    [MaxLength(20)]
+    [MaxLength(40)]
     public required string IpAddress { get; set; }
     
     [MaxLength(200)]

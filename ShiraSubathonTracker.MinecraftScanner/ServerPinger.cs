@@ -1,5 +1,4 @@
-﻿using System;
-using System.Net.Sockets;
+﻿using System.Net.Sockets;
 using System.Text.Json;
 using Microsoft.AspNetCore.Connections;
 using Microsoft.Azure.Functions.Worker;
@@ -16,13 +15,12 @@ public class ServerPinger(
     TrackerDatabaseContext trackerDatabaseContext)
 {
     private const int TimeToAdd = 15;
-    
+
     [Function("ServerPing")]
     public async Task RunAsync([TimerTrigger("*/15 * * * * *")] TimerInfo myTimer, FunctionContext context)
     {
         var servers = await trackerDatabaseContext.MinecraftServers
             .Include(x => x.MinecraftVersion)
-            .Include(x => x.Players)
             .Where(x => x.CurrentServer)
             .ToListAsync(context.CancellationToken);
 
@@ -41,7 +39,8 @@ public class ServerPinger(
         var tpcClient = new TcpClient();
         var task = tpcClient.ConnectAsync(host, port, cancellationToken);
 
-        await EstablishConnection(server, task, tpcClient, cancellationToken);
+        var ping = await EstablishConnection(server, task, tpcClient, cancellationToken);
+        streamBuffer.HandshakeSetupTime = ping;
 
         await using var stream = tpcClient.GetStream();
         await SetupHandshake(stream, host, port, server.MinecraftVersion.ServerProtocol);
@@ -50,15 +49,20 @@ public class ServerPinger(
 
         var response = await ReadStreamData(stream, cancellationToken);
         await StoreServerData(server, response, cancellationToken);
+
+        streamBuffer.Clear();
     }
 
-    private async Task EstablishConnection(MinecraftServer server, ValueTask task, TcpClient tpcClient,
+    private async Task<long> EstablishConnection(MinecraftServer server, ValueTask task, TcpClient tpcClient,
         CancellationToken cancellationToken)
     {
+        long ping;
+
         try
         {
             logger.LogInformation("Attempting connection to {serverAddress}...", server.IpAddress);
-            await AwaitConnection(task);
+            await AwaitConnection(task, out var connectionTime);
+            ping = connectionTime;
         }
         catch (TimeoutException e)
         {
@@ -69,29 +73,30 @@ public class ServerPinger(
             throw;
         }
 
-        if (!tpcClient.Connected)
-        {
-            server.ServerStatus = ServerStatus.Offline;
-            await trackerDatabaseContext.SaveChangesAsync(cancellationToken);
+        if (tpcClient.Connected) return ping;
+        server.ServerStatus = ServerStatus.Offline;
+        await trackerDatabaseContext.SaveChangesAsync(cancellationToken);
 
-            logger.LogError("Could not establish connection to {serverAddress}.", server.IpAddress);
-            throw new ConnectionAbortedException();
-        }
+        logger.LogError("Could not establish connection to {serverAddress}.", server.IpAddress);
+        throw new ConnectionAbortedException();
     }
 
-    private static Task AwaitConnection(ValueTask task)
+    private static Task AwaitConnection(ValueTask task, out long ping)
     {
         const long timeOut = 1000;
         var startingTime = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
+        var currentTime = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
 
         while (!task.IsCompleted)
         {
-            var currentTime = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
+            currentTime = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
             if (currentTime - startingTime >= timeOut)
             {
                 throw new TimeoutException();
             }
         }
+
+        ping = currentTime - startingTime;
 
         return Task.CompletedTask;
     }
@@ -112,7 +117,7 @@ public class ServerPinger(
         streamBuffer.WriteShort((short)serverPort);
         streamBuffer.WriteInt(1);
 
-        streamBuffer.FlushToStream(stream);
+        streamBuffer.FlushToStream(stream, 0);
         return Task.CompletedTask;
     }
 
@@ -134,15 +139,19 @@ public class ServerPinger(
 
         try
         {
-            var length = streamBuffer.ReadInt();
             var packet = streamBuffer.ReadInt();
             var jsonLength = streamBuffer.ReadInt();
 
             logger.LogInformation("Received packet 0x{packedId} with a length of {length}", packet.ToString("X2"),
-                length);
+                streamBuffer.BufferLength);
+
+            JsonSerializerOptions options = new()
+            {
+                PropertyNameCaseInsensitive = true
+            };
 
             var json = streamBuffer.ReadString(jsonLength);
-            var pingResponse = JsonSerializer.Deserialize<ServerPingResponse>(json);
+            var pingResponse = JsonSerializer.Deserialize<ServerPingResponse>(json, options);
             return Task.FromResult(pingResponse!);
         }
         catch (IOException e)
@@ -158,9 +167,14 @@ public class ServerPinger(
         server.ServerStatus = ServerStatus.Online;
         server.LastSeenOnline = DateTimeOffset.Now;
 
+        serverPingResponse.Players.Sample ??= [];
+        
+        var serverPlayers = await trackerDatabaseContext.MinecraftPlayers
+            .Where(x => x.IpAddress == server.IpAddress).ToListAsync(cancellationToken);
+
         foreach (var playerInformation in serverPingResponse.Players.Sample)
         {
-            var player = server.Players.SingleOrDefault(x => x.Uuid == playerInformation.Id);
+            var player = serverPlayers.SingleOrDefault(x => x.Uuid == playerInformation.Id);
 
             if (player == null)
             {
@@ -168,14 +182,27 @@ public class ServerPinger(
                 {
                     IpAddress = server.IpAddress,
                     PlayerName = playerInformation.Name,
-                    Uuid = playerInformation.Id
+                    Uuid = playerInformation.Id,
+                    LastSeenOnline = DateTimeOffset.Now,
+                    Status = PlayerStatus.Online
                 };
 
                 trackerDatabaseContext.MinecraftPlayers.Add(player);
             }
 
-            player.SecondsOnline += TimeToAdd;
-            player.LastSeenOnline = DateTimeOffset.Now;
+            var now = DateTimeOffset.Now;
+            var timeOnline = now - player.LastSeenOnline;
+            
+            player.SecondsOnline += (int) timeOnline.TotalSeconds;
+            player.LastSeenOnline = now;
+        }
+
+        var onlineUuids = serverPingResponse.Players.Sample.Select(x => x.Id).ToList();
+
+        foreach (var player in serverPlayers)
+        {
+            var playerStillOnline = onlineUuids.Contains(player.Uuid);
+            player.Status = playerStillOnline ? PlayerStatus.Online : PlayerStatus.Offline;
         }
 
         await trackerDatabaseContext.SaveChangesAsync(cancellationToken);

@@ -4,10 +4,10 @@ using Microsoft.EntityFrameworkCore;
 
 namespace ShiraSubathonTracker.DAL.Entities.Minecraft;
 
-[PrimaryKey(nameof(IpAddress), nameof(PlayerName))]
+[PrimaryKey(nameof(IpAddress), nameof(Uuid))]
 public class MinecraftPlayer
 {
-    [MaxLength(20)]
+    [MaxLength(40)]
     public required string IpAddress { get; set; }
     
     [ForeignKey(nameof(IpAddress))]
@@ -22,4 +22,12 @@ public class MinecraftPlayer
     public long SecondsOnline { get; set; }
     
     public DateTimeOffset LastSeenOnline { get; set; }
+
+    public required PlayerStatus Status { get; set; }
+}
+
+public enum PlayerStatus
+{
+    Online = 0,
+    Offline = 1
 }

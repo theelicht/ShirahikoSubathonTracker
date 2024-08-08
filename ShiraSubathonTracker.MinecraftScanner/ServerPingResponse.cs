@@ -25,7 +25,7 @@ public class PlayersPayload
 {
     public int Max { get; set; }
     public int Online { get; set; }
-    public List<Player> Sample { get; set; }
+    public List<Player>? Sample { get; set; }
 }
 
 public class Player

@@ -1,4 +1,5 @@
-﻿using System.Text;
+﻿using System.Net.Sockets;
+using System.Text;
 using Microsoft.Extensions.Logging;
 
 namespace ShiraSubathonTracker.MinecraftScanner;
@@ -6,10 +7,13 @@ namespace ShiraSubathonTracker.MinecraftScanner;
 public class StreamBuffer(ILogger<StreamBuffer> logger)
 {
     private readonly List<byte> _writeBuffer = [];
-    private readonly byte[] _readBuffer = new byte[short.MaxValue];
+    private readonly List<byte> _readBuffer = [];
 
     private int _readBufferOffset;
     
+    public int BufferLength;
+    public long? HandshakeSetupTime { get; set; }
+
     public void WriteInt(int value)
     {
         while ((value & 128) != 0)
@@ -61,15 +65,33 @@ public class StreamBuffer(ILogger<StreamBuffer> logger)
         stream.Write(buffer, 0, buffer.Length);
     }
 
-    public void ReadStreamToBuffer(Stream stream)
+    public void ReadStreamToBuffer(NetworkStream stream)
     {
-        var read = stream.Read(_readBuffer, 0, _readBuffer.Length);
+        var batch = new byte[4096];
+        var readLength = stream.Read(batch, 0, batch.Length);
+        _readBuffer.AddRange(batch);
+        
+        BufferLength = ReadInt();
+
+        // Add 150% to total connection time for ping margin
+        // TODO: Optimise, reading still gets cut short from time to time
+        var ping = HandshakeSetupTime != null ? (int)(HandshakeSetupTime + HandshakeSetupTime * 1.5) : 20; 
+
+        while (stream.DataAvailable)
+        {
+            var nextReadLength = stream.Read(batch, 0, batch.Length);
+            _readBuffer.AddRange(batch.ToList().Where((a, x) => x < nextReadLength));
+            readLength += nextReadLength;
+            Thread.Sleep(ping);
+            if (!stream.DataAvailable && readLength < BufferLength)
+                logger.LogWarning("Missing bytes: " + (BufferLength - readLength));
+        }
     }
 
     private byte[] Read(int length)
     {
         var data = new byte[length];
-        Array.Copy(_readBuffer, _readBufferOffset, data, 0, length);
+        Array.Copy(_readBuffer.ToArray(), _readBufferOffset, data, 0, length);
         _readBufferOffset += length;
         return data;
     }
@@ -101,5 +123,12 @@ public class StreamBuffer(ILogger<StreamBuffer> logger)
     {
         var data = Read(length);
         return Encoding.UTF8.GetString(data);
+    }
+
+    public void Clear()
+    {
+        _readBuffer.Clear();
+        _writeBuffer.Clear();
+        _readBufferOffset = 0;
     }
 }

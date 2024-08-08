@@ -7,6 +7,7 @@ using ShiraSubathonTracker.DAL;
 using ShiraSubathonTracker.MinecraftScanner;
 
 var builder = new HostBuilder()
+    .ConfigureFunctionsWorkerDefaults()
     .ConfigureServices(ConfigureServices);
 
 var host = builder.Build();
@@ -24,7 +25,10 @@ void ConfigureServices(HostBuilderContext context, IServiceCollection services)
     services.AddScoped<StreamBuffer>();
     
     services.AddDbContext<TrackerDatabaseContext>(contextBuilder =>
-        contextBuilder.UseSqlServer(context.Configuration.GetConnectionString("DatabaseConnectionString"))
+        {
+            contextBuilder.UseSqlServer(context.Configuration.GetConnectionString("DatabaseConnectionString"));
+            contextBuilder.EnableSensitiveDataLogging();
+        }
     );
 }
 
