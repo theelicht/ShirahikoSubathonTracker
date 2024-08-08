@@ -12,6 +12,18 @@ namespace ShiraSubathonTracker.DAL.Migrations
         protected override void Up(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.CreateTable(
+                name: "MinecraftPlayers",
+                columns: table => new
+                {
+                    Uuid = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: false),
+                    PlayerName = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_MinecraftPlayers", x => x.Uuid);
+                });
+
+            migrationBuilder.CreateTable(
                 name: "MinecraftVersions",
                 columns: table => new
                 {
@@ -27,7 +39,7 @@ namespace ShiraSubathonTracker.DAL.Migrations
                 name: "MinecraftServers",
                 columns: table => new
                 {
-                    IpAddress = table.Column<string>(type: "nvarchar(20)", maxLength: 20, nullable: false),
+                    IpAddress = table.Column<string>(type: "nvarchar(40)", maxLength: 40, nullable: false),
                     DnsName = table.Column<string>(type: "nvarchar(200)", maxLength: 200, nullable: true),
                     MessageOfTheDay = table.Column<string>(type: "nvarchar(120)", maxLength: 120, nullable: true),
                     ServerStatus = table.Column<int>(type: "int", nullable: false),
@@ -47,25 +59,36 @@ namespace ShiraSubathonTracker.DAL.Migrations
                 });
 
             migrationBuilder.CreateTable(
-                name: "MinecraftPlayers",
+                name: "MinecraftPlayerSessions",
                 columns: table => new
                 {
-                    IpAddress = table.Column<string>(type: "nvarchar(20)", maxLength: 20, nullable: false),
-                    PlayerName = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: false),
+                    IpAddress = table.Column<string>(type: "nvarchar(40)", maxLength: 40, nullable: false),
                     Uuid = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: false),
-                    SecondsOnline = table.Column<long>(type: "bigint", nullable: false),
-                    LastSeenOnline = table.Column<DateTimeOffset>(type: "datetimeoffset", nullable: false)
+                    SessionStartDate = table.Column<DateTimeOffset>(type: "datetimeoffset", nullable: false),
+                    SessionEndDate = table.Column<DateTimeOffset>(type: "datetimeoffset", nullable: true),
+                    Status = table.Column<int>(type: "int", nullable: false)
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_MinecraftPlayers", x => new { x.IpAddress, x.PlayerName });
+                    table.PrimaryKey("PK_MinecraftPlayerSessions", x => new { x.IpAddress, x.Uuid, x.SessionStartDate });
                     table.ForeignKey(
-                        name: "FK_MinecraftPlayers_MinecraftServers_IpAddress",
+                        name: "FK_MinecraftPlayerSessions_MinecraftPlayers_Uuid",
+                        column: x => x.Uuid,
+                        principalTable: "MinecraftPlayers",
+                        principalColumn: "Uuid",
+                        onDelete: ReferentialAction.Cascade);
+                    table.ForeignKey(
+                        name: "FK_MinecraftPlayerSessions_MinecraftServers_IpAddress",
                         column: x => x.IpAddress,
                         principalTable: "MinecraftServers",
                         principalColumn: "IpAddress",
                         onDelete: ReferentialAction.Cascade);
                 });
+
+            migrationBuilder.CreateIndex(
+                name: "IX_MinecraftPlayerSessions_Uuid",
+                table: "MinecraftPlayerSessions",
+                column: "Uuid");
 
             migrationBuilder.CreateIndex(
                 name: "IX_MinecraftServers_Version",
@@ -76,6 +99,9 @@ namespace ShiraSubathonTracker.DAL.Migrations
         /// <inheritdoc />
         protected override void Down(MigrationBuilder migrationBuilder)
         {
+            migrationBuilder.DropTable(
+                name: "MinecraftPlayerSessions");
+
             migrationBuilder.DropTable(
                 name: "MinecraftPlayers");
 

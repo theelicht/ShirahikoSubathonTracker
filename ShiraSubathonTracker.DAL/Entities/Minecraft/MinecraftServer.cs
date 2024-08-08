@@ -20,7 +20,7 @@ public class MinecraftServer
     public required DateTimeOffset LastSeenOnline { get; set; }
     public bool CurrentServer { get; set; }
 
-    public List<MinecraftPlayer> Players { get; set; } = [];
+    public List<MinecraftPlayerSessions> PlayerSessions { get; set; } = [];
     
     [MaxLength(20)]
     public required string Version { get; set; }

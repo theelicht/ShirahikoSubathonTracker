@@ -83,7 +83,7 @@ public class ServerPinger(
 
     private static Task AwaitConnection(ValueTask task, out long ping)
     {
-        const long timeOut = 1000;
+        const long timeOut = 5000;
         var startingTime = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
         var currentTime = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
 
@@ -168,43 +168,84 @@ public class ServerPinger(
         server.LastSeenOnline = DateTimeOffset.Now;
 
         serverPingResponse.Players.Sample ??= [];
-        
-        var serverPlayers = await trackerDatabaseContext.MinecraftPlayers
-            .Where(x => x.IpAddress == server.IpAddress).ToListAsync(cancellationToken);
 
-        foreach (var playerInformation in serverPingResponse.Players.Sample)
-        {
-            var player = serverPlayers.SingleOrDefault(x => x.Uuid == playerInformation.Id);
+        var serverPlayers = await trackerDatabaseContext.MinecraftPlayerSessions
+            .Include(x => x.Player)
+            .Where(x => x.IpAddress == server.IpAddress && x.SessionEndDate == null)
+            .ToListAsync(cancellationToken);
 
-            if (player == null)
-            {
-                player = new MinecraftPlayer
-                {
-                    IpAddress = server.IpAddress,
-                    PlayerName = playerInformation.Name,
-                    Uuid = playerInformation.Id,
-                    LastSeenOnline = DateTimeOffset.Now,
-                    Status = PlayerStatus.Online
-                };
-
-                trackerDatabaseContext.MinecraftPlayers.Add(player);
-            }
-
-            var now = DateTimeOffset.Now;
-            var timeOnline = now - player.LastSeenOnline;
-            
-            player.SecondsOnline += (int) timeOnline.TotalSeconds;
-            player.LastSeenOnline = now;
-        }
+        await StartNewSessions(server, serverPingResponse, cancellationToken, serverPlayers);
 
         var onlineUuids = serverPingResponse.Players.Sample.Select(x => x.Id).ToList();
 
+        await UpdatePlayerSessions(serverPlayers, onlineUuids);
+
+        await trackerDatabaseContext.SaveChangesAsync(cancellationToken);
+    }
+
+    private async Task StartNewSessions(MinecraftServer server, ServerPingResponse serverPingResponse,
+        CancellationToken cancellationToken, List<MinecraftPlayerSessions> serverPlayers)
+    {
+        foreach (var playerInformation in serverPingResponse.Players.Sample!)
+        {
+            await CreatePlayerIfNotExists(playerInformation, cancellationToken);
+            var session =
+                serverPlayers.SingleOrDefault(x => x.Uuid == playerInformation.Id && x.SessionEndDate == null);
+
+            if (session != null) continue;
+            session = new MinecraftPlayerSessions
+            {
+                IpAddress = server.IpAddress,
+                Uuid = playerInformation.Id,
+                SessionStartDate = DateTimeOffset.Now
+            };
+
+            trackerDatabaseContext.MinecraftPlayerSessions.Add(session);
+        }
+    }
+    
+    private Task UpdatePlayerSessions(List<MinecraftPlayerSessions> serverPlayers, List<string> onlineUuids)
+    {
         foreach (var player in serverPlayers)
         {
             var playerStillOnline = onlineUuids.Contains(player.Uuid);
-            player.Status = playerStillOnline ? PlayerStatus.Online : PlayerStatus.Offline;
-        }
+            var lastSession = serverPlayers.SingleOrDefault(x => x.Uuid == player.Uuid);
 
+            if (lastSession == null)
+            {
+                logger.LogWarning("Found online player without session. {uuid}", player.Uuid);
+                continue;
+            }
+
+            player.SessionEndDate = playerStillOnline ? null : DateTimeOffset.Now;
+        }
+        
+        return Task.CompletedTask;
+    }
+
+    private async Task CreatePlayerIfNotExists(Player playerInformation, CancellationToken cancellationToken)
+    {
+        var existingPlayer =
+            await trackerDatabaseContext.MinecraftPlayers
+                .SingleOrDefaultAsync(x => x.Uuid == playerInformation.Id, cancellationToken: cancellationToken);
+
+        if (existingPlayer != null)
+        {
+            existingPlayer.PlayerName = existingPlayer.PlayerName != playerInformation.Name
+                ? playerInformation.Name
+                : existingPlayer.PlayerName;
+        }
+        else
+        {
+            var newPlayer = new MinecraftPlayer
+            {
+                Uuid = playerInformation.Id,
+                PlayerName = playerInformation.Name
+            };
+
+            trackerDatabaseContext.MinecraftPlayers.Add(newPlayer);
+        }
+        
         await trackerDatabaseContext.SaveChangesAsync(cancellationToken);
     }
 }

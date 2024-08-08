@@ -24,6 +24,22 @@ namespace ShiraSubathonTracker.DAL.Migrations
 
             modelBuilder.Entity("ShiraSubathonTracker.DAL.Entities.Minecraft.MinecraftPlayer", b =>
                 {
+                    b.Property<string>("Uuid")
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<string>("PlayerName")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.HasKey("Uuid");
+
+                    b.ToTable("MinecraftPlayers");
+                });
+
+            modelBuilder.Entity("ShiraSubathonTracker.DAL.Entities.Minecraft.MinecraftPlayerSessions", b =>
+                {
                     b.Property<string>("IpAddress")
                         .HasMaxLength(40)
                         .HasColumnType("nvarchar(40)");
@@ -32,23 +48,17 @@ namespace ShiraSubathonTracker.DAL.Migrations
                         .HasMaxLength(50)
                         .HasColumnType("nvarchar(50)");
 
-                    b.Property<DateTimeOffset>("LastSeenOnline")
+                    b.Property<DateTimeOffset>("SessionStartDate")
                         .HasColumnType("datetimeoffset");
 
-                    b.Property<string>("PlayerName")
-                        .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)");
+                    b.Property<DateTimeOffset?>("SessionEndDate")
+                        .HasColumnType("datetimeoffset");
 
-                    b.Property<long>("SecondsOnline")
-                        .HasColumnType("bigint");
+                    b.HasKey("IpAddress", "Uuid", "SessionStartDate");
 
-                    b.Property<int>("Status")
-                        .HasColumnType("int");
+                    b.HasIndex("Uuid");
 
-                    b.HasKey("IpAddress", "Uuid");
-
-                    b.ToTable("MinecraftPlayers");
+                    b.ToTable("MinecraftPlayerSessions");
                 });
 
             modelBuilder.Entity("ShiraSubathonTracker.DAL.Entities.Minecraft.MinecraftServer", b =>
@@ -100,13 +110,21 @@ namespace ShiraSubathonTracker.DAL.Migrations
                     b.ToTable("MinecraftVersions");
                 });
 
-            modelBuilder.Entity("ShiraSubathonTracker.DAL.Entities.Minecraft.MinecraftPlayer", b =>
+            modelBuilder.Entity("ShiraSubathonTracker.DAL.Entities.Minecraft.MinecraftPlayerSessions", b =>
                 {
                     b.HasOne("ShiraSubathonTracker.DAL.Entities.Minecraft.MinecraftServer", "Server")
-                        .WithMany("Players")
+                        .WithMany("PlayerSessions")
                         .HasForeignKey("IpAddress")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
+
+                    b.HasOne("ShiraSubathonTracker.DAL.Entities.Minecraft.MinecraftPlayer", "Player")
+                        .WithMany()
+                        .HasForeignKey("Uuid")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Player");
 
                     b.Navigation("Server");
                 });
@@ -124,7 +142,7 @@ namespace ShiraSubathonTracker.DAL.Migrations
 
             modelBuilder.Entity("ShiraSubathonTracker.DAL.Entities.Minecraft.MinecraftServer", b =>
                 {
-                    b.Navigation("Players");
+                    b.Navigation("PlayerSessions");
                 });
 
             modelBuilder.Entity("ShiraSubathonTracker.DAL.Entities.Minecraft.MinecraftVersion", b =>
