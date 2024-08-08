@@ -4,7 +4,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace ShiraSubathonTracker.DAL.Entities.Minecraft;
 
-[PrimaryKey("PK_MinecraftPlayer", nameof(IpAddress), nameof(PlayerName))]
+[PrimaryKey(nameof(IpAddress), nameof(PlayerName))]
 public class MinecraftPlayer
 {
     [MaxLength(20)]
