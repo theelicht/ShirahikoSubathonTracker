@@ -1,16 +1,24 @@
-﻿using Microsoft.AspNetCore.Authorization;
+﻿using MediatR;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using ShiraSubathonTracker.Features.Minecraft.PlayTime;
 
 namespace ShiraSubathonTracker.Controllers;
 
 [ApiController]
 [Authorize]
 [Route("/minecraft")]
-public class MinecraftServerController: ControllerBase
+public class MinecraftServerController(ISender mediator): ControllerBase
 {
-    [HttpGet]
-    public async Task<IActionResult> GetMinecraftServerStatus()
+    [AllowAnonymous]
+    [HttpGet("leaderboards")]
+    public async Task<IActionResult> GetMinecraftPlaytimeLeaderboards([FromQuery] int limit = 10)
     {
-        return Ok();
+        var response = await mediator.Send(new PlaytimeLeaderboardRequest
+        {
+            PlayerLimit = limit
+        });
+
+        return new OkObjectResult(response);
     }
 }

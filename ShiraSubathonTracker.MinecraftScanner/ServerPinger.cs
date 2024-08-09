@@ -75,10 +75,25 @@ public class ServerPinger(
 
         if (tpcClient.Connected) return ping;
         server.ServerStatus = ServerStatus.Offline;
+
+        await EndPlayerSessions(server);
         await trackerDatabaseContext.SaveChangesAsync(cancellationToken);
 
         logger.LogError("Could not establish connection to {serverAddress}.", server.IpAddress);
         throw new ConnectionAbortedException();
+    }
+
+    private async Task EndPlayerSessions(MinecraftServer server)
+    {
+        var sessions = await trackerDatabaseContext.MinecraftPlayerSessions
+            .Include(x => x.Server)
+            .Where(x => x.SessionEndDate == null && x.IpAddress == server.IpAddress)
+            .ToListAsync();
+
+        foreach (var session in sessions)
+        {
+            session.SessionEndDate = DateTimeOffset.Now;
+        }
     }
 
     private static Task AwaitConnection(ValueTask task, out long ping)
