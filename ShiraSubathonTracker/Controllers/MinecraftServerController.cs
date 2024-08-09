@@ -1,8 +1,10 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 
 namespace ShiraSubathonTracker.Controllers;
 
 [ApiController]
+[Authorize]
 [Route("/minecraft")]
 public class MinecraftServerController: ControllerBase
 {
