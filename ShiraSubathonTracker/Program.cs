@@ -79,4 +79,14 @@ app.UseAuthorization();
 
 app.MapControllers();
 
+AutoApplyMigrations(app);
+
 app.Run();
+return;
+
+void AutoApplyMigrations(WebApplication webApplication)
+{
+    var scope = webApplication.Services.CreateScope();
+    var dbContext = scope.ServiceProvider.GetService<TrackerDatabaseContext>();
+    dbContext!.Database.Migrate();
+}
