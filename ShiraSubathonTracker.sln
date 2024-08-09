@@ -6,6 +6,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ShiraSubathonTracker.DAL", 
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ShiraSubathonTracker.MinecraftScanner", "ShiraSubathonTracker.MinecraftScanner\ShiraSubathonTracker.MinecraftScanner.csproj", "{19A3FE88-600B-4C34-8DA1-B985D38824A2}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ShiraSubathonTracker.Shared", "ShiraSubathonTracker.Shared\ShiraSubathonTracker.Shared.csproj", "{D49B64D9-3A1D-47F9-AB65-A19A4F8EB6A2}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -24,5 +26,9 @@ Global
 		{19A3FE88-600B-4C34-8DA1-B985D38824A2}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{19A3FE88-600B-4C34-8DA1-B985D38824A2}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{19A3FE88-600B-4C34-8DA1-B985D38824A2}.Release|Any CPU.Build.0 = Release|Any CPU
+		{D49B64D9-3A1D-47F9-AB65-A19A4F8EB6A2}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{D49B64D9-3A1D-47F9-AB65-A19A4F8EB6A2}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{D49B64D9-3A1D-47F9-AB65-A19A4F8EB6A2}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{D49B64D9-3A1D-47F9-AB65-A19A4F8EB6A2}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal

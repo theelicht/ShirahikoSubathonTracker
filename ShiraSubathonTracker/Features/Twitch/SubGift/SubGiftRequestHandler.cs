@@ -22,7 +22,8 @@ public class SubGiftRequestHandler(TrackerDatabaseContext trackerDatabaseContext
                 TwitchUsername = request.TwitchUsername,
                 AmountGifted = request.AmountGifted,
                 DateOfGift = DateTimeOffset.Now,
-                SubathonId = subathon.Id
+                SubathonId = subathon.Id,
+                SubTier = request.SubTier
             };
 
             trackerDatabaseContext.SubGifts.Add(subGift);

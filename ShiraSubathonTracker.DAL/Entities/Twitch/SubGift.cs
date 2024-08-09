@@ -1,6 +1,7 @@
 ﻿using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 using Microsoft.EntityFrameworkCore;
+using ShiraSubathonTracker.Shared;
 
 namespace ShiraSubathonTracker.DAL.Entities.Twitch;
 
@@ -15,4 +16,6 @@ public class SubGift
     public required int SubathonId { get; set; }
     [ForeignKey(nameof(SubathonId))]
     public Subathon Subathon { get; set; }
+    
+    public required SubTier SubTier { get; set; }
 }

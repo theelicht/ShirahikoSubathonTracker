@@ -1,4 +1,5 @@
 ﻿using MediatR;
+using ShiraSubathonTracker.Shared;
 
 namespace ShiraSubathonTracker.Features.Twitch.SubGift;
 
@@ -11,4 +12,5 @@ public class SubGiftRequest
 {
     public required string TwitchUsername { get; set; }
     public required int AmountGifted { get; set; }
+    public required SubTier SubTier { get; set; }
 }
