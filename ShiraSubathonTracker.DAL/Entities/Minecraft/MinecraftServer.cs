@@ -27,6 +27,8 @@ public class MinecraftServer
     
     [ForeignKey(nameof(Version))]
     public MinecraftVersion MinecraftVersion { get; set; }
+
+    public string? MetricsEndpoint { get; set; }
 }
 
 public enum ServerStatus

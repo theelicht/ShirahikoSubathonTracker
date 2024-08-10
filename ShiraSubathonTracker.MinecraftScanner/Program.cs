@@ -23,6 +23,7 @@ void ConfigureServices(HostBuilderContext context, IServiceCollection services)
     services.ConfigureFunctionsApplicationInsights();
 
     services.AddScoped<StreamBuffer>();
+    services.AddScoped<ServerMetricsGrabber>();
     
     services.AddDbContext<TrackerDatabaseContext>(contextBuilder =>
         {

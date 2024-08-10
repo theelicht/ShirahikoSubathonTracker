@@ -12,12 +12,13 @@ namespace ShiraSubathonTracker.MinecraftScanner;
 public class ServerPinger(
     ILogger<ServerPinger> logger,
     StreamBuffer streamBuffer,
+    ServerMetricsGrabber metricsGrabber,
     TrackerDatabaseContext trackerDatabaseContext)
 {
     private const int TimeToAdd = 15;
 
     [Function("ServerPing")]
-    public async Task RunAsync([TimerTrigger("*/15 * * * * *")] TimerInfo myTimer, FunctionContext context)
+    public async Task RunAsync([TimerTrigger("*/10 * * * * *")] TimerInfo myTimer, FunctionContext context)
     {
         var servers = await trackerDatabaseContext.MinecraftServers
             .Include(x => x.MinecraftVersion)
@@ -47,7 +48,7 @@ public class ServerPinger(
 
         SendStatusRequest(stream);
 
-        var response = await ReadStreamData(stream, cancellationToken);
+        var response = await metricsGrabber.GrabServerStatistics(server.MetricsEndpoint);
         await StoreServerData(server, response, cancellationToken);
 
         streamBuffer.Clear();
@@ -92,6 +93,9 @@ public class ServerPinger(
 
         foreach (var session in sessions)
         {
+            if ((DateTimeOffset.Now - server.LastSeenOnline).TotalMinutes < 5) return;
+            
+            logger.LogWarning("Ending session for {uuid}", session.Uuid);
             session.SessionEndDate = DateTimeOffset.Now;
         }
     }
@@ -147,71 +151,72 @@ public class ServerPinger(
         streamBuffer.FlushToStream(stream, 0);
     }
 
-    private Task<ServerPingResponse> ReadStreamData(NetworkStream stream, CancellationToken cancellationToken)
-    {
-        logger.LogInformation("Reading stream to buffer.");
-        streamBuffer.ReadStreamToBuffer(stream);
+    // private Task<ServerPingResponse> ReadStreamData(NetworkStream stream, CancellationToken cancellationToken)
+    // {
+    //     logger.LogInformation("Reading stream to buffer.");
+    //     streamBuffer.ReadStreamToBuffer(stream);
+    //
+    //     try
+    //     {
+    //         var packet = streamBuffer.ReadInt();
+    //         var jsonLength = streamBuffer.ReadInt();
+    //
+    //         logger.LogInformation("Received packet 0x{packedId} with a length of {length}", packet.ToString("X2"),
+    //             streamBuffer.BufferLength);
+    //
+    //         JsonSerializerOptions options = new()
+    //         {
+    //             PropertyNameCaseInsensitive = true
+    //         };
+    //
+    //         var json = streamBuffer.ReadString(jsonLength);
+    //         var pingResponse = JsonSerializer.Deserialize<ServerPingResponse>(json, options);
+    //         return Task.FromResult(pingResponse!);
+    //     }
+    //     catch (IOException e)
+    //     {
+    //         logger.LogError(e, "Unable to read packet length from the server.");
+    //         throw;
+    //     }
+    // }
 
-        try
-        {
-            var packet = streamBuffer.ReadInt();
-            var jsonLength = streamBuffer.ReadInt();
-
-            logger.LogInformation("Received packet 0x{packedId} with a length of {length}", packet.ToString("X2"),
-                streamBuffer.BufferLength);
-
-            JsonSerializerOptions options = new()
-            {
-                PropertyNameCaseInsensitive = true
-            };
-
-            var json = streamBuffer.ReadString(jsonLength);
-            var pingResponse = JsonSerializer.Deserialize<ServerPingResponse>(json, options);
-            return Task.FromResult(pingResponse!);
-        }
-        catch (IOException e)
-        {
-            logger.LogError(e, "Unable to read packet length from the server.");
-            throw;
-        }
-    }
-
-    private async Task StoreServerData(MinecraftServer server, ServerPingResponse serverPingResponse,
+    private async Task StoreServerData(MinecraftServer server, List<Player> players,
         CancellationToken cancellationToken)
     {
         server.ServerStatus = ServerStatus.Online;
         server.LastSeenOnline = DateTimeOffset.Now;
-
-        serverPingResponse.Players.Sample ??= [];
 
         var serverPlayers = await trackerDatabaseContext.MinecraftPlayerSessions
             .Include(x => x.Player)
             .Where(x => x.IpAddress == server.IpAddress && x.SessionEndDate == null)
             .ToListAsync(cancellationToken);
 
-        await StartNewSessions(server, serverPingResponse, cancellationToken, serverPlayers);
+        await StartNewSessions(server, players, cancellationToken, serverPlayers);
 
-        var onlineUuids = serverPingResponse.Players.Sample.Select(x => x.Id).ToList();
+        var onlineUuids = players.Where(x => x.IsOnline)
+            .Select(x => x.Uuid)
+            .ToList();
 
         await UpdatePlayerSessions(serverPlayers, onlineUuids);
 
         await trackerDatabaseContext.SaveChangesAsync(cancellationToken);
     }
 
-    private async Task StartNewSessions(MinecraftServer server, ServerPingResponse serverPingResponse,
+    private async Task StartNewSessions(MinecraftServer server, List<Player> players,
         CancellationToken cancellationToken, List<MinecraftPlayerSessions> serverPlayers)
     {
-        foreach (var playerInformation in serverPingResponse.Players.Sample!)
+        foreach (var player in players)
         {
-            await CreatePlayerIfNotExists(playerInformation, cancellationToken);
+            await CreatePlayerIfNotExists(player, cancellationToken);
             var session =
-                serverPlayers.SingleOrDefault(x => x.Uuid == playerInformation.Id && x.SessionEndDate == null);
+                serverPlayers.SingleOrDefault(x => x.Uuid == player.Uuid && x.SessionEndDate == null);
 
-            if (session != null) continue;
+            if (session != null || !player.IsOnline) continue;
+            
             session = new MinecraftPlayerSessions
             {
                 IpAddress = server.IpAddress,
-                Uuid = playerInformation.Id,
+                Uuid = player.Uuid,
                 SessionStartDate = DateTimeOffset.Now
             };
 
@@ -219,16 +224,16 @@ public class ServerPinger(
         }
     }
     
-    private Task UpdatePlayerSessions(List<MinecraftPlayerSessions> serverPlayers, List<string> onlineUuids)
+    private Task UpdatePlayerSessions(List<MinecraftPlayerSessions> playerSessions, List<string> onlineUuids)
     {
-        foreach (var player in serverPlayers)
+        foreach (var player in playerSessions)
         {
             var playerStillOnline = onlineUuids.Contains(player.Uuid);
-            var lastSession = serverPlayers.SingleOrDefault(x => x.Uuid == player.Uuid);
+            var lastSession = playerSessions.SingleOrDefault(x => x.Uuid == player.Uuid);
 
             if (lastSession == null)
             {
-                logger.LogWarning("Found online player without session. {uuid}", player.Uuid);
+                logger.LogWarning("Found a player without session. {uuid}", player.Uuid);
                 continue;
             }
 
@@ -242,20 +247,20 @@ public class ServerPinger(
     {
         var existingPlayer =
             await trackerDatabaseContext.MinecraftPlayers
-                .SingleOrDefaultAsync(x => x.Uuid == playerInformation.Id, cancellationToken: cancellationToken);
+                .SingleOrDefaultAsync(x => x.Uuid == playerInformation.Uuid, cancellationToken: cancellationToken);
 
         if (existingPlayer != null)
         {
-            existingPlayer.PlayerName = existingPlayer.PlayerName != playerInformation.Name
-                ? playerInformation.Name
+            existingPlayer.PlayerName = existingPlayer.PlayerName != playerInformation.PlayerName
+                ? playerInformation.PlayerName
                 : existingPlayer.PlayerName;
         }
         else
         {
             var newPlayer = new MinecraftPlayer
             {
-                Uuid = playerInformation.Id,
-                PlayerName = playerInformation.Name
+                Uuid = playerInformation.Uuid,
+                PlayerName = playerInformation.PlayerName
             };
 
             trackerDatabaseContext.MinecraftPlayers.Add(newPlayer);

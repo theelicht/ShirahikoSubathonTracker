@@ -1,6 +1,7 @@
 ﻿using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using ShiraSubathonTracker.Features.Minecraft.Players;
 using ShiraSubathonTracker.Features.Minecraft.PlayTime;
 
 namespace ShiraSubathonTracker.Controllers;
@@ -20,5 +21,21 @@ public class MinecraftServerController(ISender mediator): ControllerBase
         });
 
         return new OkObjectResult(response);
+    }
+
+    [AllowAnonymous]
+    [HttpGet("players/online")]
+    public async Task<IActionResult> GetOnlinePlayers()
+    {
+        var onlinePlayers = await mediator.Send(new OnlinePlayersRequest());
+        return new OkObjectResult(onlinePlayers);
+    }
+    
+    [AllowAnonymous]
+    [HttpGet("statistics")]
+    public async Task<IActionResult> GetPlaytimeStatistics()
+    {
+        var statisticsResponse = await mediator.Send(new PlaytimeStatisticsRequest());
+        return new OkObjectResult(statisticsResponse);
     }
 }
