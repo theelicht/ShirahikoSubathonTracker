@@ -1,14 +1,11 @@
 ﻿using MediatR;
+using ShiraSubathonTracker.Shared;
 
 namespace ShiraSubathonTracker.Features.Minecraft.PlayTime;
 
 public class PlaytimeStatisticsRequest : IRequest<PlaytimeStatisticsResponse>
 {
-    public StatisticsTimeGroupingType StatisticsTimeGroupingType { get; set; } = StatisticsTimeGroupingType.Hours;
+    public long StatisticsTrackingStartTimestamp { get; set; } = 1723197600; // Shirahiko subathon starting date
+    public StatisticsTimeGroupingType StatisticsTimeGroupingType { get; set; } = StatisticsTimeGroupingType.Both;
 }
 
-public enum StatisticsTimeGroupingType
-{
-    Hours = 0,
-    Days = 1
-}

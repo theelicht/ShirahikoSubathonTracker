@@ -10,4 +10,6 @@ public class MinecraftPlayer
 
     [MaxLength(50)]
     public required string PlayerName { get; set; }
+    
+    public List<MinecraftPlayerSessions> PlayerSessions { get; set; }
 }

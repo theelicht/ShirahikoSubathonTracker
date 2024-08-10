@@ -33,9 +33,30 @@ public class MinecraftServerController(ISender mediator): ControllerBase
     
     [AllowAnonymous]
     [HttpGet("statistics")]
-    public async Task<IActionResult> GetPlaytimeStatistics()
+    public async Task<IActionResult> GetPlaytimeStatistics([FromQuery] long trackingStartTimestamp = 1723197600)
     {
-        var statisticsResponse = await mediator.Send(new PlaytimeStatisticsRequest());
+        var statisticsResponse = await mediator.Send(new PlaytimeStatisticsRequest()
+        {
+            StatisticsTrackingStartTimestamp = trackingStartTimestamp
+        });
         return new OkObjectResult(statisticsResponse);
+    }
+    
+    [AllowAnonymous]
+    [HttpGet("user/{username}")]
+    public async Task<IActionResult> GetPlayerInformation([FromRoute] string username)
+    {
+        try
+        {
+            var statisticsResponse = await mediator.Send(new UserStatisticsRequest
+            {
+                Username = username
+            });
+            return new OkObjectResult(statisticsResponse);
+        }
+        catch (ArgumentNullException e)
+        {
+            return new BadRequestObjectResult(e.Message);
+        }
     }
 }

@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using ShiraSubathonTracker.DAL;
 
@@ -11,9 +12,11 @@ using ShiraSubathonTracker.DAL;
 namespace ShiraSubathonTracker.DAL.Migrations
 {
     [DbContext(typeof(TrackerDatabaseContext))]
-    partial class TrackerDatabaseContextModelSnapshot : ModelSnapshot
+    [Migration("20240813094532_ModifyPrimaryKey")]
+    partial class ModifyPrimaryKey
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -225,7 +228,7 @@ namespace ShiraSubathonTracker.DAL.Migrations
                         .IsRequired();
 
                     b.HasOne("ShiraSubathonTracker.DAL.Entities.Minecraft.MinecraftPlayer", "Player")
-                        .WithMany("PlayerSessions")
+                        .WithMany()
                         .HasForeignKey("Uuid")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
@@ -277,11 +280,6 @@ namespace ShiraSubathonTracker.DAL.Migrations
                         .IsRequired();
 
                     b.Navigation("user");
-                });
-
-            modelBuilder.Entity("ShiraSubathonTracker.DAL.Entities.Minecraft.MinecraftPlayer", b =>
-                {
-                    b.Navigation("PlayerSessions");
                 });
 
             modelBuilder.Entity("ShiraSubathonTracker.DAL.Entities.Minecraft.MinecraftServer", b =>
