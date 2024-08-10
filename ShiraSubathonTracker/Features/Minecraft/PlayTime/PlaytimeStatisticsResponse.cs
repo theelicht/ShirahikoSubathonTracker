@@ -11,7 +11,7 @@ public class PlaytimeStatisticsResponse
 public class TotalPlaytimeByTimestamp
 {
     public required DateTimeOffset Timestamp { get; set; }
-    public required int TotalMinutesPlayed { get; set; }
+    public required double TotalMinutesPlayed { get; set; }
 }
 
 public class TotalPlaytimePerPlayerByTimestamp

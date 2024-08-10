@@ -2,7 +2,7 @@
 
 namespace ShiraSubathonTracker.Features.Minecraft.Players;
 
-public class OnlinePlayersRequest : IRequest<List<OnlinePlayerResponse>>
+public class OnlinePlayersRequest : IRequest<OnlinePlayersResponse>
 {
     
 }
