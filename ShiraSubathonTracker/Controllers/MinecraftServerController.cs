@@ -33,9 +33,12 @@ public class MinecraftServerController(ISender mediator): ControllerBase
     
     [AllowAnonymous]
     [HttpGet("statistics")]
-    public async Task<IActionResult> GetPlaytimeStatistics()
+    public async Task<IActionResult> GetPlaytimeStatistics([FromQuery] long trackingStartTimestamp = 1723197600)
     {
-        var statisticsResponse = await mediator.Send(new PlaytimeStatisticsRequest());
+        var statisticsResponse = await mediator.Send(new PlaytimeStatisticsRequest()
+        {
+            StatisticsTrackingStartTimestamp = trackingStartTimestamp
+        });
         return new OkObjectResult(statisticsResponse);
     }
 }

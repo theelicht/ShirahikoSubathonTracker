@@ -1,4 +1,6 @@
-﻿namespace ShiraSubathonTracker.Features.Minecraft.PlayTime;
+﻿using System.Text.Json.Serialization;
+
+namespace ShiraSubathonTracker.Features.Minecraft.PlayTime;
 
 public class PlaytimeStatisticsResponse
 {
@@ -12,6 +14,8 @@ public class TotalPlaytimeByTimestamp
 {
     public required DateTimeOffset Timestamp { get; set; }
     public required double TotalMinutesPlayed { get; set; }
+    [JsonIgnore]
+    public bool IsCached { get; set; }
 }
 
 public class TotalPlaytimePerPlayerByTimestamp

@@ -10,7 +10,10 @@ var builder = WebApplication.CreateBuilder(args);
 var configuration = builder.Configuration;
 
 builder.Services.AddDbContext<TrackerDatabaseContext>(contextBuilder =>
-    contextBuilder.UseSqlServer(builder.Configuration.GetConnectionString("DatabaseConnectionString"))
+    {
+        contextBuilder.UseSqlServer(builder.Configuration.GetConnectionString("DatabaseConnectionString"));
+        contextBuilder.EnableSensitiveDataLogging();
+    }
 );
 
 builder.Services

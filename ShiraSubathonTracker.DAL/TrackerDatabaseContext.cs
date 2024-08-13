@@ -16,4 +16,5 @@ public class TrackerDatabaseContext(DbContextOptions<TrackerDatabaseContext> dbC
     public DbSet<JwtToken> JwtTokens { get; set; }
     public DbSet<SubGift> SubGifts { get; set; }
     public DbSet<Subathon> Subathons { get; set; }
+    public DbSet<PlaytimeStatisticsByTimestamp> PlaytimeStatisticsByTimestamps { get; set; }
 }
