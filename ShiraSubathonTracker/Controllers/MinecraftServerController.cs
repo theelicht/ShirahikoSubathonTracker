@@ -41,4 +41,22 @@ public class MinecraftServerController(ISender mediator): ControllerBase
         });
         return new OkObjectResult(statisticsResponse);
     }
+    
+    [AllowAnonymous]
+    [HttpGet("user/{username}")]
+    public async Task<IActionResult> GetPlayerInformation([FromRoute] string username)
+    {
+        try
+        {
+            var statisticsResponse = await mediator.Send(new UserStatisticsRequest
+            {
+                Username = username
+            });
+            return new OkObjectResult(statisticsResponse);
+        }
+        catch (ArgumentNullException e)
+        {
+            return new BadRequestObjectResult(e.Message);
+        }
+    }
 }
