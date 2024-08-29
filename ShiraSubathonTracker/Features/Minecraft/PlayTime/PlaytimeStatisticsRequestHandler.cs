@@ -138,6 +138,10 @@ public class PlaytimeStatisticsRequestHandler(TrackerDatabaseContext trackerData
         CancellationToken cancellationToken)
     {
         var playtimeByTimestamps = new List<TotalPlaytimeByTimestamp>();
+        var cachedPlaytimes = await trackerDatabaseContext.PlaytimeStatisticsByTimestamps
+            .AsNoTracking()
+            .Where(x => x.Timestamp >= trackingStartDate)
+            .ToListAsync(cancellationToken: cancellationToken);
 
         var currentDate = trackingStartDate;
         var now = DateTimeOffset.Now;
@@ -146,14 +150,14 @@ public class PlaytimeStatisticsRequestHandler(TrackerDatabaseContext trackerData
         {
             var newDate = currentDate.AddHours(hoursBetweenTimestamps);
             // TODO: Optimise query outside while loop for faster performance
-            var cachedPlaytime = await trackerDatabaseContext.PlaytimeStatisticsByTimestamps.AsNoTracking().Where(
+            var cachedPlaytime = cachedPlaytimes.Where(
                     x => x.IpAddress == ipAddress && x.GroupingType == groupingType && x.Timestamp == newDate)
                 .Select(x => new TotalPlaytimeByTimestamp
                 {
                     Timestamp = x.Timestamp,
                     TotalMinutesPlayed = x.TotalMinutesPlayed,
                     IsCached = true
-                }).AsNoTracking().SingleOrDefaultAsync(cancellationToken: cancellationToken);
+                }).SingleOrDefault();
 
             if (cachedPlaytime != null)
             {
