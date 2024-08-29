@@ -149,7 +149,6 @@ public class PlaytimeStatisticsRequestHandler(TrackerDatabaseContext trackerData
         while (currentDate <= now)
         {
             var newDate = currentDate.AddHours(hoursBetweenTimestamps);
-            // TODO: Optimise query outside while loop for faster performance
             var cachedPlaytime = cachedPlaytimes.Where(
                     x => x.IpAddress == ipAddress && x.GroupingType == groupingType && x.Timestamp == newDate)
                 .Select(x => new TotalPlaytimeByTimestamp
